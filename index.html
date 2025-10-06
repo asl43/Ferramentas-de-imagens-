@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toolkit IA - Remover Fundo & Criar Vídeos</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #dff1ff, #a0c4ff);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 20px;
+      background: #007bff;
+      color: white;
+      width: 100%;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .container {
+      margin: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      width: 90%;
+      max-width: 800px;
+    }
+    canvas, video, img {
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    button, select, input[type="file"] {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .links a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>Toolkit IA - Remover Fundo e Criar Vídeos</header>
+  <div class="container">
+    <h3>1️⃣ Ferramentas Externas (Grátis)</h3>
+    <div class="links">
+      <ul>
+        <li><a href="https://www.remove.bg/" target="_blank">Remove.bg</a> — remove fundo de imagens.</li>
+        <li><a href="https://www.unscreen.com/" target="_blank">Unscreen</a> — remove fundo de vídeos.</li>
+        <li><a href="https://www.canva.com/" target="_blank">Canva IA</a> — editor e troca de fundos automáticos.</li>
+        <li><a href="https://runwayml.com/" target="_blank">Runway ML</a> — vídeos com IA e edição automática.</li>
+        <li><a href="https://pika.art/" target="_blank">Pika Labs</a> — gera vídeos a partir de imagens.</li>
+        <li><a href="https://kaiber.ai/" target="_blank">Kaiber AI</a> — cria vídeos com base em fotos e descrições.</li>
+      </ul>
+    </div><h3>2️⃣ Upload de Imagem ou Vídeo</h3>
+<input type="file" id="fileInput" accept="image/*,video/*">
+<canvas id="canvas"></canvas>
+
+<h3>3️⃣ Opções de Fundo Automático</h3>
+<button id="removeBgBtn">Remover Fundo (IA)</button>
+<input type="file" id="bgInput" accept="image/*">
+<button id="replaceBgBtn">Substituir Fundo</button>
+<button id="downloadBtn">Baixar Resultado</button>
+
+  </div>  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0"></script>  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix"></script>  <script>
+    const fileInput = document.getElementById('fileInput');
+    const bgInput = document.getElementById('bgInput');
+    const removeBgBtn = document.getElementById('removeBgBtn');
+    const replaceBgBtn = document.getElementById('replaceBgBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    let img = null;
+    let bgImage = null;
+    let model = null;
+
+    async function loadModel() {
+      model = await bodyPix.load();
+      console.log('Modelo BodyPix carregado');
+    }
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      if (file.type.startsWith('image')) {
+        img = new Image();
+        img.src = url;
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+        };
+      }
+    });
+
+    bgInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      bgImage = new Image();
+      bgImage.src = url;
+    });
+
+    removeBgBtn.addEventListener('click', async () => {
+      if (!img) return alert('Carregue uma imagem primeiro!');
+      if (!model) await loadModel();
+      const segmentation = await model.segmentPerson(img);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const pixels = imageData.data;
+      for (let i = 0; i < pixels.length; i += 4) {
+        const n = i / 4;
+        if (segmentation.data[n] === 0) pixels[i + 3] = 0;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    });
+
+    replaceBgBtn.addEventListener('click', () => {
+      if (!img || !bgImage) return alert('Carregue imagem e fundo!');
+      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'resultado.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  </script></body>
+</html>
