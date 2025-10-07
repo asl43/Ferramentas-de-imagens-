@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Toolkit IA - Remover Fundo & Criar Vídeos</title>
   <style>
+    /* Estilos Gerais */
     body {
       font-family: 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #dff1ff, #a0c4ff);
@@ -37,120 +38,606 @@
       width: 90%;
       max-width: 800px;
     }
-    canvas, video, img {
+    canvas {
       max-width: 100%;
       border-radius: 10px;
+      border: 2px solid #007bff; 
+      background-color: #f0f0f0; 
+      cursor: default;
+    }
+    .canvas-container {
+        position: relative;
+        max-width: 100%;
+    }
+    #brushOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        display: none;
     }
     button, select, input[type="file"] {
-      padding: 10px;
+      padding: 10px 20px;
       border: none;
       border-radius: 8px;
       background: #007bff;
       color: white;
       cursor: pointer;
       font-size: 16px;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .links a {
-      color: #007bff;
-      text-decoration: none;
+      transition: all 0.3s;
       font-weight: 500;
     }
+    button:hover:not(:disabled), select:hover {
+      background: #0056b3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,123,255,0.3);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    button:disabled {
+      background: #89b4e8;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    #undoBtn {
+      background: #6c757d;
+    }
+    #undoBtn:hover:not(:disabled) {
+      background: #5a6268;
+    }
+    #downloadBtn {
+      background: #28a745;
+    }
+    #downloadBtn:hover:not(:disabled) {
+      background: #218838;
+    }
+    .edit-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #eee;
+    }
+    .edit-controls label {
+        color: #333;
+        font-weight: 600;
+        margin-right: 5px;
+    }
+    .edit-controls select, .edit-controls input[type="range"] {
+        padding: 5px;
+        background: white;
+        color: #333;
+        border: 1px solid #ced4da;
+    }
+    .edit-controls input[type="range"] {
+        cursor: pointer;
+    }
+    footer {
+        margin-top: 20px;
+        text-align: center;
+        padding: 20px;
+        color: #666;
+        font-size: 14px;
+    }
+    kbd {
+        background: #f4f4f4;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-family: monospace;
+        font-size: 13px;
+    }
+    .links ul {
+        list-style: none;
+        padding: 0;
+        margin: 10px 0;
+    }
+    .links li {
+        margin: 8px 0;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #007bff;
+    }
+    .links a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 600;
+    }
     .links a:hover {
-      text-decoration: underline;
+        text-decoration: underline;
     }
   </style>
 </head>
 <body>
   <header>Toolkit IA - Remover Fundo e Criar Vídeos</header>
   <div class="container">
+    
     <h3>1️⃣ Ferramentas Externas (Grátis)</h3>
     <div class="links">
       <ul>
         <li><a href="https://www.remove.bg/" target="_blank">Remove.bg</a> — remove fundo de imagens.</li>
-        <li><a href="https://www.unscreen.com/" target="_blank">Unscreen</a> — remove fundo de vídeos.</li>
+        <li><a href="https://www.unscreen.com/" target="_blank">Unscreen</a> — remove fundo de vídeos (Recomendado para Vídeos).</li>
         <li><a href="https://www.canva.com/" target="_blank">Canva IA</a> — editor e troca de fundos automáticos.</li>
-        <li><a href="https://runwayml.com/" target="_blank">Runway ML</a> — vídeos com IA e edição automática.</li>
-        <li><a href="https://pika.art/" target="_blank">Pika Labs</a> — gera vídeos a partir de imagens.</li>
-        <li><a href="https://kaiber.ai/" target="_blank">Kaiber AI</a> — cria vídeos com base em fotos e descrições.</li>
       </ul>
-    </div><h3>2️⃣ Upload de Imagem ou Vídeo</h3>
-<input type="file" id="fileInput" accept="image/*,video/*">
-<canvas id="canvas"></canvas>
+    </div>
+    
+    <hr style="width: 100%; border: 0; border-top: 1px solid #eee;">
+    
+    <h3>2️⃣ Upload e Visualização</h3>
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+        <div id="brushOverlay"></div>
+    </div>
 
-<h3>3️⃣ Opções de Fundo Automático</h3>
-<button id="removeBgBtn">Remover Fundo (IA)</button>
-<input type="file" id="bgInput" accept="image/*">
-<button id="replaceBgBtn">Substituir Fundo</button>
-<button id="downloadBtn">Baixar Resultado</button>
+    <hr style="width: 100%; border: 0; border-top: 1px solid #eee;">
+    
+    <h3>3️⃣ Controle de Fundo e Processamento</h3>
+    
+    <select id="backgroundOptions">
+      <option value="transparent">Fundo: Transparente</option>
+      <option value="#ff6347">Fundo: Vermelho (Tomate)</option>
+      <option value="#3cb371">Fundo: Verde (Mar)</option>
+      <option value="#4682b4">Fundo: Azul (Aço)</option>
+      <option value="#ffffff">Fundo: Branco Sólido</option>
+      <option value="#000000">Fundo: Preto Sólido</option>
+    </select>
+    
+    <p style="margin: 0; font-size: 14px; color: #555;">... ou Carregar Imagem de Fundo:</p>
+    <input type="file" id="bgInput" accept="image/*">
+    
+    <button id="processBtn" disabled>🤖 Remover Fundo com IA</button>
+    
+    <hr style="width: 100%; border: 0; border-top: 1px solid #eee;">
+    
+    <h3>4️⃣ Pincel de Edição Manual (Refinamento)</h3>
+    <div class="edit-controls">
+        <label for="brushMode">Modo:</label>
+        <select id="brushMode" disabled>
+            <option value="remove">Remover (Apagar)</option>
+            <option value="add">Adicionar (Restaurar)</option>
+        </select>
 
-  </div>  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0"></script>  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix"></script>  <script>
+        <label for="brushSize">Tamanho:</label>
+        <input type="range" id="brushSize" min="5" max="50" value="20" disabled>
+        <span id="brushSizeValue">20px</span>
+    </div>
+    
+    <button id="undoBtn" disabled>↶ Desfazer (Ctrl+Z)</button>
+    <button id="downloadBtn" disabled>⬇️ Baixar Resultado</button>
+
+  </div>
+  
+  <footer>
+    <p>💡 <strong>Dicas:</strong> Use <kbd>Ctrl+Z</kbd> para desfazer | Pincel Verde restaura, Vermelho remove</p>
+    <p>⚡ Otimizado com suavização de bordas e cache inteligente</p>
+  </footer>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix"></script>
+  
+  <script>
+    // --- Variáveis de Elementos DOM ---
     const fileInput = document.getElementById('fileInput');
     const bgInput = document.getElementById('bgInput');
-    const removeBgBtn = document.getElementById('removeBgBtn');
-    const replaceBgBtn = document.getElementById('replaceBgBtn');
+    const processBtn = document.getElementById('processBtn');
+    const backgroundOptions = document.getElementById('backgroundOptions');
     const downloadBtn = document.getElementById('downloadBtn');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+    const brushMode = document.getElementById('brushMode');
+    const brushSize = document.getElementById('brushSize');
+    const brushSizeValue = document.getElementById('brushSizeValue');
+    const brushOverlay = document.getElementById('brushOverlay');
+    const undoBtn = document.getElementById('undoBtn');
 
-    let img = null;
+    // --- Variáveis de Estado ---
+    let originalImage = null;
     let bgImage = null;
     let model = null;
+    let segmentationData = null;
+    let isDrawing = false;
+    let canvasWidth = 0;
+    let canvasHeight = 0;
+    let originalImageData = null;
+    let undoStack = [];
+    let lastBrushPoint = null;
 
-    async function loadModel() {
-      model = await bodyPix.load();
-      console.log('Modelo BodyPix carregado');
+    // --- Utilitários ---
+    
+    function smoothSegmentation(data, width, height, radius = 1) {
+      const smoothed = new Uint8Array(data.length);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let sum = 0;
+          let count = 0;
+          for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                sum += data[ny * width + nx];
+                count++;
+              }
+            }
+          }
+          smoothed[y * width + x] = Math.round(sum / count);
+        }
+      }
+      return smoothed;
     }
+
+    function saveState() {
+      if (segmentationData) {
+        undoStack.push(new Uint8Array(segmentationData));
+        if (undoStack.length > 10) undoStack.shift();
+        undoBtn.disabled = false;
+      }
+    }
+
+    function undo() {
+        if (undoStack.length > 0) {
+            segmentationData = undoStack.pop();
+            drawResult();
+            if (undoStack.length === 0) {
+                undoBtn.disabled = true;
+            }
+            console.log('↶ Ação desfeita');
+        }
+    }
+
+    // --- 1. Carregamento do Modelo IA ---
+    async function loadModel() {
+      processBtn.innerText = '⏳ Carregando IA...';
+      processBtn.disabled = true;
+      try {
+        model = await bodyPix.load({
+            architecture: 'MobileNetV1',
+            outputStride: 16,
+            multiplier: 0.75,
+            quantBytes: 2
+        });
+        console.log('✅ Modelo BodyPix carregado');
+        processBtn.innerText = '🤖 Remover Fundo com IA';
+      } catch (error) {
+        alert('❌ Erro ao carregar o modelo IA. Verifique sua conexão.');
+        console.error(error);
+        processBtn.innerText = '🔄 Tentar Novamente';
+      } finally {
+        processBtn.disabled = false;
+      }
+    }
+
+    // --- 2. Segmentação e Desenho Inicial ---
+    async function segmentImageWithAI() {
+      if (!originalImage) return alert('⚠️ Carregue uma imagem primeiro!');
+      
+      if (!model) await loadModel();
+      if (!model) return; 
+      
+      saveState();
+      
+      processBtn.innerText = '⚙️ Processando...';
+      processBtn.disabled = true;
+      downloadBtn.disabled = true;
+      brushMode.disabled = true;
+      brushSize.disabled = true;
+      
+      try {
+        // Cria canvas temporário com as dimensões corretas para segmentação
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = canvasWidth;
+        tempCanvas.height = canvasHeight;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(originalImage, 0, 0, canvasWidth, canvasHeight);
+        
+        const segmentation = await model.segmentPerson(tempCanvas, {
+            flipHorizontal: false,
+            internalResolution: 'high',
+            segmentationThreshold: 0.6
+        });
+        
+        segmentationData = smoothSegmentation(
+          segmentation.data, 
+          canvasWidth, 
+          canvasHeight,
+          2
+        );
+        
+        drawResult();
+
+        brushMode.disabled = false;
+        brushSize.disabled = false;
+        
+        console.log('✅ Segmentação concluída');
+        
+      } catch (error) {
+        alert('❌ Erro ao processar: ' + error.message);
+        console.error(error);
+      } finally {
+        processBtn.innerText = '🤖 Remover Fundo com IA';
+        processBtn.disabled = false;
+        downloadBtn.disabled = false;
+      }
+    }
+
+    // --- 3. Desenhar o Resultado no Canvas ---
+    function drawResult() {
+        if (!originalImage || !segmentationData) return;
+        
+        const width = canvasWidth;
+        const height = canvasHeight;
+        
+        ctx.clearRect(0, 0, width, height);
+
+        let selectedBg = backgroundOptions.value;
+        if (bgImage) {
+            // Desenha a imagem de fundo ajustada ao tamanho do canvas
+            ctx.drawImage(bgImage, 0, 0, width, height);
+        } else if (selectedBg !== 'transparent') {
+            ctx.fillStyle = selectedBg;
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        if (!originalImageData) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvasWidth;
+            tempCanvas.height = canvasHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(originalImage, 0, 0, canvasWidth, canvasHeight); 
+            originalImageData = tempCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+        }
+        
+        const foreground = new ImageData(
+            new Uint8ClampedArray(width * height * 4), 
+            width, 
+            height
+        );
+        
+        const originalData = originalImageData.data;
+
+        for (let i = 0; i < segmentationData.length; i++) {
+            const pixelIndex = i * 4;
+            const alpha = segmentationData[i] * 255;
+            
+            if (alpha > 0) {
+                foreground.data[pixelIndex] = originalData[pixelIndex];
+                foreground.data[pixelIndex + 1] = originalData[pixelIndex + 1];
+                foreground.data[pixelIndex + 2] = originalData[pixelIndex + 2];
+                foreground.data[pixelIndex + 3] = alpha;
+            }
+        }
+        
+        ctx.putImageData(foreground, 0, 0);
+    }
+
+    // --- 4. Lógica do Pincel ---
+
+    function getCanvasCoordinates(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: Math.floor((e.clientX - rect.left) * scaleX),
+            y: Math.floor((e.clientY - rect.top) * scaleY)
+        };
+    }
+
+    function interpolatePoints(x0, y0, x1, y1, callback) {
+        const dx = Math.abs(x1 - x0);
+        const dy = Math.abs(y1 - y0);
+        const sx = x0 < x1 ? 1 : -1;
+        const sy = y0 < y1 ? 1 : -1;
+        let err = dx - dy;
+
+        while (true) {
+            callback(x0, y0);
+            if (x0 === x1 && y0 === y1) break;
+            const e2 = 2 * err;
+            if (e2 > -dy) { err -= dy; x0 += sx; }
+            if (e2 < dx) { err += dx; y0 += sy; }
+        }
+    }
+
+    function applyBrush(x, y, radius, mode) {
+        if (!segmentationData || !originalImage) return;
+
+        const width = canvasWidth;
+        const height = canvasHeight;
+        const radiusSquared = radius * radius;
+        const value = mode === 'add' ? 1 : 0;
+        
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                if (dx * dx + dy * dy <= radiusSquared) {
+                    const currentX = x + dx;
+                    const currentY = y + dy;
+
+                    if (currentX >= 0 && currentX < width && currentY >= 0 && currentY < height) {
+                        const index = currentY * width + currentX;
+                        segmentationData[index] = value;
+                    }
+                }
+            }
+        }
+    }
+    
+    let lastDrawTime = 0;
+    const drawThrottle = 16;
+
+    function throttledDraw(x, y) {
+        const now = Date.now();
+        if (now - lastDrawTime < drawThrottle) return;
+        lastDrawTime = now;
+        drawResult();
+    }
+
+    // --- 5. Listeners de Eventos do Pincel ---
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (!segmentationData || e.button !== 0) return;
+        isDrawing = true;
+        saveState();
+        const { x, y } = getCanvasCoordinates(e);
+        lastBrushPoint = { x, y };
+        const radius = parseInt(brushSize.value);
+        const mode = brushMode.value;
+        applyBrush(x, y, radius, mode);
+        drawResult();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        
+        if (originalImage) {
+            brushOverlay.style.display = 'block';
+            const size = parseInt(brushSize.value) * (rect.width / canvas.width); 
+            brushOverlay.style.width = size * 2 + 'px';
+            brushOverlay.style.height = size * 2 + 'px';
+            brushOverlay.style.left = e.clientX - rect.left - size + 'px';
+            brushOverlay.style.top = e.clientY - rect.top - size + 'px';
+            brushOverlay.style.borderColor = brushMode.value === 'add' ? '#22c55e' : '#ef4444';
+        } else {
+             brushOverlay.style.display = 'none';
+        }
+
+        if (!isDrawing) return;
+        
+        const { x, y } = getCanvasCoordinates(e);
+        const radius = parseInt(brushSize.value);
+        const mode = brushMode.value;
+        
+        if (lastBrushPoint) {
+            interpolatePoints(lastBrushPoint.x, lastBrushPoint.y, x, y, (ix, iy) => {
+                applyBrush(ix, iy, radius, mode);
+            });
+        }
+        
+        lastBrushPoint = { x, y };
+        throttledDraw(x, y);
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDrawing = false;
+        lastBrushPoint = null;
+        if (segmentationData) drawResult();
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        brushOverlay.style.display = 'none';
+    });
+    
+    canvas.addEventListener('mouseenter', () => {
+        if (originalImage) brushOverlay.style.display = 'block';
+    });
+
+    brushSize.addEventListener('input', () => {
+        brushSizeValue.innerText = brushSize.value + 'px';
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'z' && undoStack.length > 0) {
+            e.preventDefault();
+            undo();
+        }
+    });
+
+    undoBtn.addEventListener('click', undo);
+
+    // --- 6. Listeners de Eventos de Carga/Processamento ---
 
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-      const url = URL.createObjectURL(file);
-      if (file.type.startsWith('image')) {
-        img = new Image();
-        img.src = url;
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-        };
+      if (!file || !file.type.startsWith('image')) {
+          alert('⚠️ Por favor, carregue uma imagem válida.');
+          return;
       }
+      
+      originalImageData = null;
+      segmentationData = null;
+      undoStack = [];
+      undoBtn.disabled = true;
+      
+      const url = URL.createObjectURL(file);
+      originalImage = new Image();
+      originalImage.src = url;
+      originalImage.onload = () => {
+        canvasWidth = originalImage.width;
+        canvasHeight = originalImage.height;
+        
+        const maxDim = 1920;
+        if (canvasWidth > maxDim || canvasHeight > maxDim) {
+            const scale = maxDim / Math.max(canvasWidth, canvasHeight);
+            canvasWidth = Math.floor(canvasWidth * scale);
+            canvasHeight = Math.floor(canvasHeight * scale);
+        }
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        ctx.drawImage(originalImage, 0, 0, canvasWidth, canvasHeight);
+
+        segmentationData = new Uint8Array(canvasWidth * canvasHeight);
+        segmentationData.fill(1); 
+        
+        drawResult(); 
+
+        downloadBtn.disabled = false;
+        processBtn.disabled = false;
+        brushMode.disabled = false;
+        brushSize.disabled = false;
+        
+        brushOverlay.style.display = 'none';
+        console.log(`✅ Imagem carregada: ${canvasWidth}x${canvasHeight}px`);
+      };
+      
+      originalImage.onerror = () => {
+          alert('❌ Erro ao carregar a imagem. Tente outro arquivo.');
+      };
     });
 
     bgInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (!file) return;
-      const url = URL.createObjectURL(file);
-      bgImage = new Image();
-      bgImage.src = url;
-    });
-
-    removeBgBtn.addEventListener('click', async () => {
-      if (!img) return alert('Carregue uma imagem primeiro!');
-      if (!model) await loadModel();
-      const segmentation = await model.segmentPerson(img);
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const pixels = imageData.data;
-      for (let i = 0; i < pixels.length; i += 4) {
-        const n = i / 4;
-        if (segmentation.data[n] === 0) pixels[i + 3] = 0;
+      if (!file) {
+          bgImage = null;
+      } else {
+          const url = URL.createObjectURL(file);
+          bgImage = new Image();
+          bgImage.src = url;
+          bgImage.onload = () => {
+              if(segmentationData) drawResult();
+          };
       }
-      ctx.putImageData(imageData, 0, 0);
     });
 
-    replaceBgBtn.addEventListener('click', () => {
-      if (!img || !bgImage) return alert('Carregue imagem e fundo!');
-      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    processBtn.addEventListener('click', segmentImageWithAI);
+    
+    backgroundOptions.addEventListener('change', () => {
+        if(segmentationData) drawResult();
     });
 
     downloadBtn.addEventListener('click', () => {
       const link = document.createElement('a');
-      link.download = 'resultado.png';
-      link.href = canvas.toDataURL();
+      const timestamp = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+      link.download = `resultado_ia_${timestamp}.png`;
+      link.href = canvas.toDataURL('image/png'); 
       link.click();
+      console.log('✅ Download iniciado');
     });
-  </script></body>
+
+    window.addEventListener('load', () => {
+        console.log('🚀 Toolkit IA carregado. Pré-carregando modelo...');
+        loadModel();
+    });
+  </script>
+</body>
 </html>
